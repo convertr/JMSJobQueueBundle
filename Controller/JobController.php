@@ -4,17 +4,32 @@ namespace JMS\JobQueueBundle\Controller;
 
 use Doctrine\Common\Util\ClassUtils;
 use Doctrine\ORM\EntityManager;
+use Doctrine\Persistence\ManagerRegistry;
 use JMS\JobQueueBundle\Entity\Job;
 use JMS\JobQueueBundle\Entity\Repository\JobManager;
 use JMS\JobQueueBundle\View\JobFilter;
-use Sensio\Bundle\FrameworkExtraBundle\Configuration\Route;
-use Symfony\Bundle\FrameworkBundle\Controller\Controller;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\HttpException;
+use Symfony\Component\Routing\Annotation\Route;
 
-class JobController extends Controller
+class JobController extends AbstractController
 {
+    private $doctrine;
+
+    private $jobManager;
+
+    private $parameterBag;
+
+    public function __construct(ManagerRegistry $doctrine, JobManager $jobManager, ParameterBagInterface $parameterBag)
+    {
+        $this->doctrine = $doctrine;
+        $this->jobManager = $jobManager;
+        $this->parameterBag = $parameterBag;
+    }
+
     /**
      * @Route("/", name = "jms_jobs_overview")
      */
@@ -27,7 +42,7 @@ class JobController extends Controller
             ->where($qb->expr()->isNull('j.originalJob'))
             ->orderBy('j.id', 'desc');
 
-        $lastJobsWithError = $jobFilter->isDefaultPage() ? $this->getRepo()->findLastJobsWithError(5) : [];
+        $lastJobsWithError = $jobFilter->isDefaultPage() ? $this->jobManager->findLastJobsWithError(5) : [];
         foreach ($lastJobsWithError as $i => $job) {
             $qb->andWhere($qb->expr()->neq('j.id', '?'.$i));
             $qb->setParameter($i, $job->getId());
@@ -118,7 +133,7 @@ class JobController extends Controller
         return $this->render('@JMSJobQueue/Job/details.html.twig', array(
             'job' => $job,
             'relatedEntities' => $relatedEntities,
-            'incomingDependencies' => $this->getRepo()->getIncomingDependencies($job),
+            'incomingDependencies' => $this->jobManager->getIncomingDependencies($job),
             'statisticData' => $statisticData,
             'statisticOptions' => $statisticOptions,
         ));
@@ -151,11 +166,11 @@ class JobController extends Controller
 
     private function getEm(): EntityManager
     {
-        return $this->get('doctrine')->getManagerForClass(Job::class);
+        return $this->doctrine->getManagerForClass(Job::class);
     }
 
-    private function getRepo(): JobManager
+    protected function getParameter($name)
     {
-        return $this->get('jms_job_queue.job_manager');
+        return $this->parameterBag->get($name);
     }
 }

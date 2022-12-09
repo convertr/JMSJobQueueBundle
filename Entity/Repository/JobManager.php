@@ -22,6 +22,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Util\ClassUtils;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Types\Type;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\Query\Parameter;
 use Doctrine\ORM\Query\ResultSetMappingBuilder;
@@ -35,7 +36,9 @@ use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 class JobManager
 {
     private $dispatcher;
+
     private $registry;
+
     private $retryScheduler;
     
     public function __construct(ManagerRegistry $managerRegistry, EventDispatcherInterface $eventDispatcher, RetryScheduler $retryScheduler)
@@ -45,16 +48,28 @@ class JobManager
         $this->retryScheduler = $retryScheduler;
     }
 
-    public function findJob($command, array $args = array())
+    public function findJob($command, array $args = [])
     {
-        return $this->getJobManager()->createQuery("SELECT j FROM JMSJobQueueBundle:Job j WHERE j.command = :command AND j.args = :args")
+        $qb = $this->getJobManager()
+            ->createQueryBuilder()
+            ->from(Job::class, 'j')
+            ->select('j')
+            ->andWhere('j.command = :command')
             ->setParameter('command', $command)
-            ->setParameter('args', $args, Type::JSON_ARRAY)
-            ->setMaxResults(1)
+            ->orderBy('j.id', 'desc')
+            ->setMaxResults(1);
+
+        if ($args) {
+            $qb->andWhere('j.args = :args')
+                ->setParameter('args', $args, Types::JSON_ARRAY);
+        }
+
+        return $qb
+            ->getQuery()
             ->getOneOrNullResult();
     }
 
-    public function getJob($command, array $args = array())
+    public function getJob($command, array $args = [])
     {
         if (null !== $job = $this->findJob($command, $args)) {
             return $job;
@@ -63,7 +78,7 @@ class JobManager
         throw new \RuntimeException(sprintf('Found no job for command "%s" with args "%s".', $command, json_encode($args)));
     }
 
-    public function getOrCreateIfNotExists($command, array $args = array())
+    public function getOrCreateIfNotExists($command, array $args = [])
     {
         if (null !== $job = $this->findJob($command, $args)) {
             return $job;
@@ -93,7 +108,12 @@ class JobManager
         return $firstJob;
     }
 
-    public function findStartableJob($workerName, array &$excludedIds = array(), $excludedQueues = array(), $restrictedQueues = array())
+    public function findStartableJob(
+        $workerName,
+        array &$excludedIds = [],
+        $excludedQueues = [],
+        $restrictedQueues = []
+    )
     {
         while (null !== $job = $this->findPendingJob($excludedIds, $excludedQueues, $restrictedQueues)) {
             if ($job->isStartable() && $this->acquireLock($workerName, $job)) {
@@ -113,7 +133,7 @@ class JobManager
 
     private function acquireLock($workerName, Job $job)
     {
-        $affectedRows = $this->getJobManager()->getConnection()->executeUpdate(
+        $affectedRows = $this->getJobManager()->getConnection()->executeStatement(
             "UPDATE jms_jobs SET workerName = :worker WHERE id = :id AND workerName IS NULL",
             array(
                 'worker' => $workerName,
@@ -132,7 +152,7 @@ class JobManager
 
     public function findAllForRelatedEntity($relatedEntity)
     {
-        list($relClass, $relId) = $this->getRelatedEntityIdentifier($relatedEntity);
+        [$relClass, $relId] = $this->getRelatedEntityIdentifier($relatedEntity);
 
         $rsm = new ResultSetMappingBuilder($this->getJobManager());
         $rsm->addRootEntityFromClassMetadata('JMSJobQueueBundle:Job', 'j');
@@ -150,7 +170,7 @@ class JobManager
 
     public function findJobForRelatedEntity($command, $relatedEntity, array $states = array())
     {
-        list($relClass, $relId) = $this->getRelatedEntityIdentifier($relatedEntity);
+        [$relClass, $relId] = $this->getRelatedEntityIdentifier($relatedEntity);
 
         $rsm = new ResultSetMappingBuilder($this->getJobManager());
         $rsm->addRootEntityFromClassMetadata('JMSJobQueueBundle:Job', 'j');
@@ -269,7 +289,7 @@ class JobManager
 
         if (null !== $this->dispatcher && ($job->isRetryJob() || 0 === count($job->getRetryJobs()))) {
             $event = new StateChangeEvent($job, $finalState);
-            $this->dispatcher->dispatch('jms_job_queue.job_state_change', $event);
+            $this->dispatcher->dispatch($event, 'jms_job_queue.job_state_change');
             $finalState = $event->getNewState();
         }
 

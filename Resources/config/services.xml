@@ -14,6 +14,10 @@
     <services>
         <service id="jms_job_queue.retry_scheduler" class="%jms_job_queue.retry_scheduler.class%" />
 
+        <service id="JMS\JobQueueBundle\Controller\JobController" autowire="true">
+            <tag name="controller.service_arguments"/>
+        </service>
+
         <service id="jms_job_queue.entity.many_to_any_listener" class="%jms_job_queue.entity.many_to_any_listener.class%">
             <argument type="service" id="doctrine" />
             <tag name="doctrine.event_listener" lazy="true" event="postGenerateSchema" />
@@ -31,5 +35,7 @@
             <argument type="service" id="event_dispatcher" />
             <argument type="service" id="jms_job_queue.retry_scheduler" />
         </service>
+
+        <service id="%jms_job_queue.job_manager.class%" alias="jms_job_queue.job_manager" />
     </services>
 </container>

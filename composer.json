@@ -42,7 +42,7 @@
         "symfony/twig-bundle": "Required when using the webinterface."
     },
     "autoload": {
-        "psr-0": { "JMS\\JobQueueBundle\\": "" }
+        "psr-0": { "JMS\\JobQueueBundle": "" }
     },
     "target-dir": "JMS/JobQueueBundle",
     "config": {

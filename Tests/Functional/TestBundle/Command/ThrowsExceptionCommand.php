@@ -13,9 +13,11 @@ class ThrowsExceptionCommand extends Command
         $this->setName('jms-job-queue:throws-exception-cmd');
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         var_dump('Throwing exception');
         throw new \RuntimeException('Something went wrong.');
+
+        return 0;
     }
 }

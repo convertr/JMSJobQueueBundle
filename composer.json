@@ -12,13 +12,13 @@
         }
     ],
     "require": {
-        "php": ">=7.2 || >=8.0",
+        "php": ">=7.2",
         "ext-json": "*",
         "ext-pcntl": "*",
         "ext-pdo": "*",
         "symfony/framework-bundle": "^4.4 || ^5.0",
-        "symfony/debug": "^4.4 || ^5.0",
         "doctrine/common": "^2.3",
+        "symfony/error-handler": "^4.4 || ^5.0",
         "symfony/process": "^4.4 || ^5.0"
     },
     "require-dev": {
@@ -42,9 +42,12 @@
         "symfony/twig-bundle": "Required when using the webinterface."
     },
     "autoload": {
-        "psr-4": { "JMS\\JobQueueBundle\\": "" }
+        "psr-0": { "JMS\\JobQueueBundle\\": "" }
     },
     "target-dir": "JMS/JobQueueBundle",
+    "config": {
+        "sort-packages": true
+    },
     "extra": {
         "branch-alias": {
             "dev-master": "3.0.x-dev"

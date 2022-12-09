@@ -13,10 +13,12 @@ class NeverEndingCommand extends Command
         $this->setName('jms-job-queue:never-ending');
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         while (true) {
             sleep(5);
         }
+
+        return 0;
     }
 }

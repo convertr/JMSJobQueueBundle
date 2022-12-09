@@ -23,8 +23,8 @@ use JMS\JobQueueBundle\Event\JobEvent;
 
 class NewOutputEvent extends JobEvent
 {
-    const TYPE_STDOUT = 1;
-    const TYPE_STDERR = 2;
+    public const TYPE_STDOUT = 1;
+    public const TYPE_STDERR = 2;
 
     private $newOutput;
     private $type;

@@ -5,7 +5,7 @@
 
 {% block stylesheets %}
     <style type="text/css">
-        {% include "@JMSJobQueueBundle:Job:exception.css.twig" %}
+        {% include "@JMSJobQueue/Job/exception.css.twig" %}
         .trace-code {
             padding-left:30px;
         }
@@ -203,7 +203,7 @@
     </script>
     {% endif %}
 
-    {% include "@JMSJobQueueBundle::base_js.html.twig" %}
+    {% include "@JMSJobQueue/base_js.html.twig" %}
 
     <script>
         $(document).ready(function() {

@@ -5,6 +5,7 @@
 
 {% block stylesheets %}
     <style type="text/css">
+        {% include "@JMSJobQueueBundle:Job:exception.css.twig" %}
         .trace-code {
             padding-left:30px;
         }
@@ -136,8 +137,8 @@
                     </span>
                     {{ exception.class|split('\\')|last }}
 
-                    <span class="icon icon-close">{{ include('@Twig/images/icon-minus-square-o.svg') }}</span>
-                    <span class="icon icon-open">{{ include('@Twig/images/icon-plus-square-o.svg') }}</span>
+                    <span class="icon icon-close"><img src="{{ asset('bundles/jmsjobqueue/img/icon-minus-square-o.svg') }}" /></span>
+                    <span class="icon icon-open"><img src="{{ asset('bundles/jmsjobqueue/img/icon-plus-square-o.svg') }}" /></span>
                 </h3>
 
                 {% if exception.message is not empty and index > 1 %}
@@ -152,7 +153,7 @@
                     {% set _display_code_snippet = _is_first_user_code and ('/vendor/' not in trace.file) and ('/var/cache/' not in trace.file) and (trace.file is not empty) %}
                     {% if _display_code_snippet %}{% set _is_first_user_code = false %}{% endif %}
                     <div class="trace-line">
-                        {{ include('@Twig/Exception/trace.html.twig', { prefix: index, i: i, trace: trace, _display_code_snippet: _display_code_snippet, style: 'display' }, with_context = false) }}
+                        {{ include('@JMSJobQueue/Job/trace.html.twig', { prefix: index, i: i, trace: trace, _display_code_snippet: _display_code_snippet, style: 'display' }, with_context = false) }}
                     </div>
                 {% endfor %}
             </div>
@@ -201,6 +202,8 @@
         });
     </script>
     {% endif %}
+
+    {% include "@JMSJobQueueBundle::base_js.html.twig" %}
 
     <script>
         $(document).ready(function() {

@@ -115,18 +115,7 @@ class RunCommand extends Command
 
         $restrictedQueues = $input->getOption('queue');
 
-        $workerName = $input->getOption('worker-name');
-        if ($workerName === null) {
-            $workerName = gethostname().'-'.getmypid();
-        }
-
-        if (strlen($workerName) > 50) {
-            throw new \RuntimeException(sprintf(
-                '"worker-name" must not be longer than 50 chars, but got "%s" (%d chars).',
-                $workerName,
-                strlen($workerName)
-            ));
-        }
+        $workerName = self::resolveWorkerName($input->getOption('worker-name'));
 
         $this->env = $input->getOption('env');
         $this->verbose = $input->getOption('verbose');
@@ -448,5 +437,29 @@ class RunCommand extends Command
     private function getEntityManager(): EntityManager
     {
         return /** @var EntityManager */ $this->registry->getManagerForClass(Job::class);
+    }
+
+    private static function resolveWorkerName(?string $workerName = null): string
+    {
+        $hostname = gethostname();
+        $pid = getmypid();
+
+        if ($workerName === null) {
+            $workerName = $hostname . '-' . $pid;
+        }
+
+        if (strlen($workerName) <= 50) {
+            return $workerName;
+        }
+
+        $workerName = str_replace('convertr-convertr-jms-', 'convertr-jms-', $workerName);
+
+        if (strlen($workerName) <= 50) {
+            return $workerName;
+        }
+
+        $suffix = '-' . getmypid();
+
+        return substr($hostname, 0, 50 - strlen($suffix)) . $suffix;
     }
 }

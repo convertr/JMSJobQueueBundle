@@ -14,6 +14,7 @@ use Doctrine\ORM\EntityManager;
 use JMS\JobQueueBundle\Entity\Repository\JobManager;
 use JMS\JobQueueBundle\Event\StateChangeEvent;
 use JMS\JobQueueBundle\Entity\Job;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 class JobManagerTest extends BaseTestCase
 {
@@ -292,7 +293,7 @@ class JobManagerTest extends BaseTestCase
         $this->createClient();
         $this->importDatabaseSchema();
 
-        $this->dispatcher = $this->createMock('Symfony\Component\EventDispatcher\EventDispatcherInterface');
+        $this->dispatcher = $this->createMock(EventDispatcherInterface::class);
         $this->em = self::$kernel->getContainer()->get('doctrine')->getManagerForClass(Job::class);
         $this->jobManager = new JobManager(
             self::$kernel->getContainer()->get('doctrine'),

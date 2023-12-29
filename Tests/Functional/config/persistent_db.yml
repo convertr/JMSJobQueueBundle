@@ -23,3 +23,6 @@ jms_job_queue:
     queue_options:
         foo:
             max_concurrent_jobs: 2
+
+services:
+    Doctrine\Persistence\ManagerRegistry: '@doctrine'

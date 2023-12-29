@@ -1,0 +1,47 @@
+name: JMSJobQueueBundle CI
+
+on:
+  push:
+    branches:
+      - 3.0.x-dev
+  pull_request:
+    branches:
+      - 3.0.x-dev
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        php-version:
+          # Convertr versions
+          - 7.4
+          # - 8.3
+        dependencies:
+          - "lowest"
+          # - "highest"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: mbstring, xml, zip
+          tools: "composer:v2,flex"
+
+      - name: Install dependencies with Composer
+        uses: ramsey/composer-install@v2
+        with:
+          dependency-versions: ${{ matrix.dependencies }}
+          composer-options: --prefer-dist --optimize-autoloader
+
+      - name: Run tests
+        run: ./vendor/bin/phpunit --coverage-clover clover --testdox
+
+      #- { name: Upload artifact, if: success(), run: curl -sL https://bit.ly/artifact-uploader | php }

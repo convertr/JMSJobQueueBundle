@@ -2,6 +2,7 @@
 
 namespace JMS\JobQueueBundle\Tests\Functional;
 
+use JMS\JobQueueBundle\Command\RunCommand;
 use JMS\JobQueueBundle\Entity\Job;
 use Symfony\Component\Console\Output\Output;
 use Symfony\Component\Console\Input\ArrayInput;
@@ -12,7 +13,7 @@ class RunCommandTest extends BaseTestCase
     private $app;
     private $em;
 
-    public function testRun()
+    public function testRun(): void
     {
         $a = new Job('adoigjaoisdjfijasodifjoiajsdf');
         $b = new Job('b', array('foo'));
@@ -24,14 +25,15 @@ class RunCommandTest extends BaseTestCase
         $output = $this->runConsoleCommand(array('--max-runtime' => 5, '--worker-name' => 'test'));
         $expectedOutput = "Started Job(id = 1, command = \"adoigjaoisdjfijasodifjoiajsdf\").\n"
                          ."Job(id = 1, command = \"adoigjaoisdjfijasodifjoiajsdf\") finished with exit code 1.\n";
-        $this->assertEquals($expectedOutput, $output);
-        $this->assertEquals('failed', $a->getState());
-        $this->assertEquals('', $a->getOutput());
-        $this->assertContains('Command "adoigjaoisdjfijasodifjoiajsdf" is not defined.', $a->getErrorOutput());
-        $this->assertEquals('canceled', $b->getState());
+
+        static::assertEquals($expectedOutput, $output);
+        static::assertEquals('failed', $a->getState());
+        static::assertEquals('', $a->getOutput());
+        static::assertStringContainsString('Command "adoigjaoisdjfijasodifjoiajsdf" is not defined.', $a->getErrorOutput());
+        static::assertEquals('canceled', $b->getState());
     }
 
-    public function testExitsAfterMaxRuntime()
+    public function testExitsAfterMaxRuntime(): void
     {
         $time = time();
         $output = $this->runConsoleCommand(array('--max-runtime' => 1, '--worker-name' => 'test'));
@@ -41,7 +43,7 @@ class RunCommandTest extends BaseTestCase
         $this->assertTrue($runtime >= 2 && $runtime < 8);
     }
 
-    public function testSuccessfulCommand()
+    public function testSuccessfulCommand(): void
     {
         $job = new Job('jms-job-queue:successful-cmd');
         $this->em->persist($job);
@@ -54,7 +56,7 @@ class RunCommandTest extends BaseTestCase
     /**
      * @group queues
      */
-    public function testQueueWithLimitedConcurrentJobs()
+    public function testQueueWithLimitedConcurrentJobs(): void
     {
         $outputFile = tempnam(sys_get_temp_dir(), 'job-output');
         for ($i=0; $i<4; $i++) {
@@ -88,7 +90,7 @@ OUTPUT
     /**
      * @group queues
      */
-    public function testQueueWithMoreThanOneConcurrentJob()
+    public function testQueueWithMoreThanOneConcurrentJob(): void
     {
         $outputFile = tempnam(sys_get_temp_dir(), 'job-output');
         for ($i=0; $i<3; $i++) {
@@ -121,7 +123,7 @@ OUTPUT
     /**
      * @group queues
      */
-    public function testSingleRestrictedQueue()
+    public function testSingleRestrictedQueue(): void
     {
         $a = new Job('jms-job-queue:successful-cmd');
         $b = new Job('jms-job-queue:successful-cmd', array(), true, 'other_queue');
@@ -140,7 +142,7 @@ OUTPUT
     /**
      * @group queues
      */
-    public function testMultipleRestrictedQueues()
+    public function testMultipleRestrictedQueues(): void
     {
         $a = new Job('jms-job-queue:successful-cmd');
         $b = new Job('jms-job-queue:successful-cmd', array(), true, 'other_queue');
@@ -159,7 +161,7 @@ OUTPUT
     /**
      * @group queues
      */
-    public function testNoRestrictedQueue()
+    public function testNoRestrictedQueue(): void
     {
         $a = new Job('jms-job-queue:successful-cmd');
         $b = new Job('jms-job-queue:successful-cmd', array(), true, 'other_queue');
@@ -178,7 +180,7 @@ OUTPUT
     /**
      * @group retry
      */
-    public function testRetry()
+    public function testRetry(): void
     {
         $job = new Job('jms-job-queue:sometimes-failing-cmd', array(time()));
         $job->setMaxRetries(5);
@@ -192,7 +194,7 @@ OUTPUT
         $this->assertEquals(1, $job->getExitCode());
     }
 
-    public function testJobIsTerminatedIfMaxRuntimeIsExceeded()
+    public function testJobIsTerminatedIfMaxRuntimeIsExceeded(): void
     {
         $job = new Job('jms-job-queue:never-ending');
         $job->setMaxRuntime(1);
@@ -206,7 +208,7 @@ OUTPUT
     /**
      * @group priority
      */
-    public function testJobsWithHigherPriorityAreStartedFirst()
+    public function testJobsWithHigherPriorityAreStartedFirst(): void
     {
         $job = new Job('jms-job-queue:successful-cmd');
         $this->em->persist($job);
@@ -232,7 +234,7 @@ OUTPUT
     /**
      * @group priority
      */
-    public function testJobsAreStartedInCreationOrderWhenPriorityIsEqual()
+    public function testJobsAreStartedInCreationOrderWhenPriorityIsEqual(): void
     {
         $job = new Job('jms-job-queue:successful-cmd', array(), true, Job::DEFAULT_QUEUE, Job::PRIORITY_HIGH);
         $this->em->persist($job);
@@ -259,7 +261,7 @@ OUTPUT
     /**
      * @group exception
      */
-    public function testExceptionStackTraceIsSaved()
+    public function testExceptionStackTraceIsSaved(): void
     {
         $job = new Job('jms-job-queue:throws-exception-cmd');
         $this->em->persist($job);
@@ -274,6 +276,13 @@ OUTPUT
         $this->assertNotNull($job->getStackTrace());
         $this->assertNotNull($job->getMemoryUsage());
         $this->assertNotNull($job->getMemoryUsageReal());
+    }
+
+    public function testResolveWorkerName(): void
+    {
+        $workerName = RunCommand::resolveWorkerName();
+
+        static::assertLessThanOrEqual(50, $workerName);
     }
 
     protected function setUp(): void
@@ -293,10 +302,11 @@ OUTPUT
         $this->em = self::$kernel->getContainer()->get('doctrine')->getManagerForClass(Job::class);
     }
 
-    private function runConsoleCommand(array $args = array())
+    private function runConsoleCommand(array $args = []): string
     {
-        array_unshift($args, 'jms-job-queue:run');
         $output = new MemoryOutput();
+
+        array_unshift($args, 'jms-job-queue:run');
 
         $_SERVER['SYMFONY_CONSOLE_FILE'] = __DIR__.'/console';
         $this->app->run(new ArrayInput($args), $output);
@@ -307,9 +317,9 @@ OUTPUT
 
 class MemoryOutput extends Output
 {
-    private $output;
+    private string $output = '';
 
-    protected function doWrite($message, $newline)
+    protected function doWrite($message, $newline): void
     {
         $this->output .= $message;
 
@@ -318,7 +328,7 @@ class MemoryOutput extends Output
         }
     }
 
-    public function getOutput()
+    public function getOutput(): string
     {
         return $this->output;
     }

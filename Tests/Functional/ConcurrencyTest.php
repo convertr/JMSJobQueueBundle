@@ -29,9 +29,10 @@ class ConcurrencyTest extends BaseTestCase
         for ($i=0; $i<5; $i++) {
             $jobs[] = $job = new Job('jms-job-queue:logging-cmd', array('Job-'.$i, $filename, '--runtime=1'));
             $em->persist($job);
+            $em->flush();
         }
-        $em->flush();
 
+        $this->validateWorkersAreOnline();
         $this->waitUntilJobsProcessed(20);
 
         $logOutput = file_get_contents($filename);
@@ -71,7 +72,7 @@ parameters:
 CONFIG
         );
 
-        self::$kernel = self::createKernel(array('config' => $this->configFile));
+        self::$kernel = self::createKernel(['config' => $this->configFile]);
         self::$kernel->boot();
 
         $this->importDatabaseSchema();
@@ -91,6 +92,15 @@ CONFIG
         }
     }
 
+    private function validateWorkersAreOnline(): void
+    {
+        foreach ($this->processes as $process) {
+            if ( ! $process->isRunning()) {
+                throw new\ RuntimeException(sprintf('The process "%s" exited prematurely due to the following error:'."\n\n%s\n\n%s", $process->getCommandLine(), $process->getOutput(), $process->getErrorOutput()));
+            }
+        }
+    }
+
     private function waitUntilJobsProcessed($maxRuntime)
     {
         $start = time();
@@ -106,11 +116,19 @@ CONFIG
         } while ($jobCount > 0 && time() - $start < $maxRuntime);
 
         if ($jobCount > 0) {
+            /** @var Job[] $jobs */
             $jobs = $em->createQuery("SELECT j FROM ".Job::class." j WHERE j.state IN (:nonFinalStates)")
-                ->setParameter('nonFinalStates', array(Job::STATE_RUNNING, Job::STATE_NEW, Job::STATE_PENDING))
+                ->setParameter('nonFinalStates', [Job::STATE_RUNNING, Job::STATE_NEW, Job::STATE_PENDING])
                 ->getResult();
 
-            throw new \RuntimeException('Not all jobs were processed: '."\n\n".implode("\n\n", $jobs));
+            $message = 'Not all jobs were processed: ' . "\n\n";
+            $message .= "\n\nDatabase location: " . self::$kernel->getCacheDir() . '/database.sqlite';
+
+            foreach ($jobs as $job) {
+                $message .= "Id: {$job->getId()}, Command: {$job->getCommand()}, State: {$job->getState()}, Error Output: {$job->getErrorOutput()} \n\n";
+            }
+
+            throw new \RuntimeException($message);
         }
     }
 
@@ -131,6 +149,6 @@ CONFIG
             ));
         }
 
-        $this->processes[] = $proc;
+        $this->processes[$proc->getPid()] = $proc;
     }
 }

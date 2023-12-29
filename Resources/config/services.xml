@@ -12,6 +12,8 @@
     </parameters>
 
     <services>
+        <defaults autowire="false" autoconfigure="false"/>
+
         <service id="jms_job_queue.retry_scheduler" class="%jms_job_queue.retry_scheduler.class%" />
 
         <service id="JMS\JobQueueBundle\Controller\JobController" autowire="true">

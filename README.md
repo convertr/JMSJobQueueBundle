@@ -1,13 +1,11 @@
-JMSJobQueueBundle [![Build Status](https://secure.travis-ci.org/schmittjoh/JMSJobQueueBundle.png?branch=master)](http://travis-ci.org/schmittjoh/JMSJobQueueBundle)
+JMSJobQueueBundle - Convertr fork for Symfony 4+ compatibility
 =================
 
-Documentation: 
+Original Documentation:
 [Resources/doc](http://jmsyst.com/bundles/JMSJobQueueBundle)
-    
 
 Code License:
 [Resources/meta/LICENSE](https://github.com/schmittjoh/JMSJobQueueBundle/blob/master/Resources/meta/LICENSE)
-
 
 Documentation License:
 [Resources/doc/LICENSE](https://github.com/schmittjoh/JMSJobQueueBundle/blob/master/Resources/doc/LICENSE)

@@ -439,27 +439,29 @@ class RunCommand extends Command
         return /** @var EntityManager */ $this->registry->getManagerForClass(Job::class);
     }
 
-    private static function resolveWorkerName(?string $workerName = null): string
+    public static function resolveWorkerName(?string $declaredWorkerName = null): string
     {
-        $hostname = gethostname();
+        if (null !== $declaredWorkerName) {
+            if (strlen($declaredWorkerName) > 50) {
+                throw new InvalidArgumentException(sprintf('The declared worker name must not be longer than 50 characters, but got "%s".', $declaredWorkerName));
+            }
+
+            return $declaredWorkerName;
+        }
+
+        $hostname = gethostname() ?: 'jms-worker';
         $pid = getmypid();
 
-        if ($workerName === null) {
-            $workerName = $hostname . '-' . $pid;
-        }
+        $workerName = $hostname . '-' . $pid;
 
         if (strlen($workerName) <= 50) {
             return $workerName;
         }
 
-        $workerName = str_replace('convertr-convertr-jms-', 'convertr-jms-', $workerName);
-
-        if (strlen($workerName) <= 50) {
-            return $workerName;
+        if (strlen($hostname) <= 50) {
+            return $hostname;
         }
 
-        $suffix = '-' . getmypid();
-
-        return substr($hostname, 0, 50 - strlen($suffix)) . $suffix;
+        throw new InvalidArgumentException(sprintf('The worker name or hostname must not be longer than 50 characters, but got "%s".', $workerName));
     }
 }
